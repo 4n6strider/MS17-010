@@ -11,13 +11,13 @@ Eternalblue only requires access to IPC$ to exploit a target while other exploit
 **eternalblue_exploit7:**
 
 - Windows 7 SP1 x64
-- Windows 2008 R2 SP1 x64
+- Windows Server 2008 R2 SP1 x64
 - Windows 7 SP1 x86
-- Windows 2008 SP1 x86
+- Windows Server 2008 SP1 x86
 
 **eternalblue_exploit8:**
 
-- Windows 2012 R2 x64
+- Windows Server 2012 R2 x64
 - Windows 8.1 x64
 
 ### Exploit usage
@@ -36,10 +36,10 @@ This exploit exploits the same bug used by NSA's Eternalromance and Eternalsyner
 
 ### Compatible targets
 
-- Windows 2016 x64
-- Windows 2012 R2 x64
+- Windows Server 2016 x64
+- Windows Server 2012 R2 x64
 - Windows 8.1 x64
-- Windows 2008 R2 SP1 x64
+- Windows Server 2008 R2 SP1 x64
 - Windows 7 SP1 x64
 - Windows 8.1 x86
 - Windows 7 SP1 x86
@@ -48,7 +48,7 @@ This exploit exploits the same bug used by NSA's Eternalromance and Eternalsyner
 
 Example for finding a named pipe:
 
-`python find_named_pip.py 192.168.178.26 testuser Password123`
+`python find_named_pip.py 192.168.178.2 testuser Password123`
 
 Usage of `eternalsynergy_romance.py`: 
 
