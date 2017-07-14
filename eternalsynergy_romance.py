@@ -14,12 +14,13 @@ Note:
 - The exploit use the bug same as eternalromance and eternalsynergy, so named pipe is needed
 
 Tested on:
-- Windows 2016 x64
-- Windows 2012 R2 x64
+- Windows Server 2016 x64
+- Windows Server 2012 R2 x64
+- Windows Server 2008 R2 SP1 x64
+- Windows 10 x64
 - Windows 8.1 x64
-- Windows 2008 R2 SP1 x64
-- Windows 7 SP1 x64
 - Windows 8.1 x86
+- Windows 7 SP1 x64
 - Windows 7 SP1 x86
 '''
 
