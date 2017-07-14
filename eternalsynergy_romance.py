@@ -338,7 +338,7 @@ def exploit(target, pipe_name, username, password, cmd):
 	print('Target OS: '+server_os)
 	if server_os.startswith("Windows 7 ") or server_os.startswith("Windows Server 2008 R2"):
 		info.update(WIN7_INFO)
-	elif server_os.startswith("Windows 8") or server_os.startswith("Windows Server 2012 ") or server_os.startswith("Windows Server 2016 "):
+	elif server_os.startswith("Windows 8") or server_os.startswith("Windows Server 2012 ") or server_os.startswith("Windows Server 2016 ") or server_os.startswith("Windows 10"):
 		info.update(WIN8_INFO)
 	else:
 		print('This exploit does not support this target')
