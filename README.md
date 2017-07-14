@@ -4,15 +4,15 @@ All credits go out to [worawit](https://github.com/worawit/MS17-010). I've just 
 
 ## Eternalblue
 
-Eternalblue only requires access to IPC$ to exploit a target while other exploits require access to a named pipe as well. Eternalblue thus works on all versions of Windows that allow anonymous access to IPC$ (Windows 7 and Windows 2008, or later version explicitly configured to allow anonymous access). Keep in mind that Eternalblue has a higher change of crashing a target than Eternalsynergy - Eternalromance.
+Eternalblue only requires access to IPC$ to exploit a target while other exploits require access to a named pipe as well. Eternalblue thus works on all versions of Windows that allow anonymous access to IPC$ (Windows 7 and Windows 2008, or later version explicitly configured to allow anonymous access). Keep in mind that Eternalblue has a higher change of crashing a target than Eternalsynergy - Eternalromance, so don't try this on critical systems. 
 
 ### Compatible targets
 
 **eternalblue_exploit7:**
 
 - Windows 7 SP1 x64
-- Windows Server 2008 R2 SP1 x64
 - Windows 7 SP1 x86
+- Windows Server 2008 R2 SP1 x64
 - Windows Server 2008 SP1 x86
 
 **eternalblue_exploit8:**
@@ -40,6 +40,7 @@ This exploit exploits the same bug used by NSA's Eternalromance and Eternalsyner
 - Windows Server 2012 R2 x64
 - Windows Server 2008 R2 SP1 x64
 - Windows 10 x64
+- Windows 10 x86
 - Windows 8.1 x64
 - Windows 8.1 x86
 - Windows 7 SP1 x64
